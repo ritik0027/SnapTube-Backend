@@ -3,13 +3,17 @@
   "version": "1.0.0",
   "description": "a backend for youtube",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "start": "node index.js"
+    "dev": "nodemon src/index.js"
   },
   "keywords": [
     "javascript",
     "backend"
   ],
   "author": "Ritik Kumar",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
 }
