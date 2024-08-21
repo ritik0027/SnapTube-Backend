@@ -1,39 +1,32 @@
-import { Router } from 'express';
-import {
-    deleteVideo,
-    getAllVideos,
-    getVideoById,
-    publishAVideo,
-    togglePublishStatus,
-    updateVideo,
-} from "../controllers/video.controller.js"
-import {verifyJWT} from "../middlewares/auth.middleware.js"
-import {upload} from "../middlewares/multer.middleware.js"
+import { Router } from "express";
+import { upload } from "../middlewares/multer.middleware.js";
+import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { deleteVideo, getAllVideos, getVideoById, publishVideo, togglePublishStatus, updateVideoDetails } from "../controllers/video.controller.js";
 
-const router = Router();
-router.use(verifyJWT); // Apply verifyJWT middleware to all routes in this file
 
-router
-    .route("/")
-    .get(getAllVideos)
-    .post(
-        upload.fields([
-            {
-                name: "videoFile",
-                maxCount: 1,
-            },
-            {
-                name: "thumbnail",
-                maxCount: 1,
-            },
-            
-        ]),
-        publishAVideo
-    );
+const router=Router()
 
-router.route("/:videoId").get(getVideoById)
-router.route("/:videoId").delete(deleteVideo)
-router.route("/:videoId").patch(upload.single("thumbnail"), updateVideo);
-router.route("/toggle/publish/:videoId").patch(togglePublishStatus);
+router.route("/publish-video").post(verifyJWT,
+    upload.fields([
+        {
+            name:"videoFile",
+            maxCount:1
+        },
+        {
+            name:"thumbnail",
+            maxCount:1
+        }
+    ]),
+    publishVideo
+)
+
+
+router.route("/get-all-videos").get(getAllVideos)
+router.route("/:videoId").get(verifyJWT,getVideoById)
+router.route("/update-video/:videoId").post(verifyJWT,upload.single("thumbnail"), updateVideoDetails)
+router.route("/delete-video/:videoId").delete(verifyJWT,deleteVideo)
+router.route("/toggle-publish-status/:videoId").post(verifyJWT,togglePublishStatus)
+
+
 
 export default router
