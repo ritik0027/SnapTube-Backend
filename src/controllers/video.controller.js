@@ -14,6 +14,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
         throw new ApiError(400,"title for a video is req")
     }
 
+
     const videoLocalPath = req.files?.videoFile[0].path
     if (!videoLocalPath) {
         throw new ApiError(400,"No video found")
@@ -40,6 +41,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
 
     const user=await User.findById(req.user?._id)
 
+
     const video=await Video.create({
         videoFile:videoFile.secure_url,
         thumbnail:thumbnail.url,
@@ -47,7 +49,6 @@ const publishAVideo = asyncHandler(async (req, res) => {
         title:title,
         description:description || "",
         duration:videoFile.duration
-
     })
 
     return (

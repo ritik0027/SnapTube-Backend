@@ -71,7 +71,6 @@ const toggleSubscription = asyncHandler(async (req, res) => {
 });
 
 
-
 const getUserChannelSubscribers = asyncHandler(async (req, res) => {
     const {channelId} = req.params
     if(!isValidObjectId(channelId)){
@@ -102,7 +101,6 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200,{subscriberCount,subscribers},"Subscribers retrieved successfully"))
     )
 });
-
 
 
 const getSubscribedChannels = asyncHandler(async (req, res) => {
