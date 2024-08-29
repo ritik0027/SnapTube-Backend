@@ -16,12 +16,11 @@ RUN yarn install
 
 COPY public/ public/
 COPY src/ src/
-COPY .env .env
 COPY .env.sample .env.sample
 COPY .gitignore .gitignore
 COPY .prettierignore .prettierignore
 COPY .prettierrc .prettierrc
-COPY README.md README.md
+COPY README.md Readme.md
 
 # Expose the port for your Node.js application
 EXPOSE 8000
