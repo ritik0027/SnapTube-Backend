@@ -20,7 +20,7 @@ COPY .env.sample .env.sample
 COPY .gitignore .gitignore
 COPY .prettierignore .prettierignore
 COPY .prettierrc .prettierrc
-COPY README.md Readme.md
+COPY Readme.md Readme.md
 
 # Expose the port for your Node.js application
 EXPOSE 8000
