@@ -269,11 +269,49 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
 });
 
 
+const updateView = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+    if (!isValidObjectId(videoId)) throw new APIError(400, "videoId required");
+  
+    const video = await Video.findById(videoId);
+    if (!video) throw new ApiError(400, "Video not found");
+  
+    video.views += 1;
+    const updatedVideo = await video.save();
+    if (!updatedVideo) throw new ApiError(400, "Error occurred on updating view");
+  
+    let watchHistory;
+    if (req.user) {
+      watchHistory = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+          $push: {
+            watchHistory: new mongoose.Types.ObjectId(videoId),
+          },
+        },
+        {
+          new: true,
+        }
+      );
+    }
+  
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(200,
+          { isSuccess: true, views: updatedVideo.views, watchHistory },
+          "Video views updated successfully"
+        )
+      );
+  });
+
+
 export {
     getAllVideos,
     publishAVideo,
     getVideoById,
     updateVideo,
     deleteVideo,
-    togglePublishStatus
+    togglePublishStatus,
+    updateView
 }
