@@ -303,7 +303,145 @@ const updateView = asyncHandler(async (req, res) => {
           "Video views updated successfully"
         )
       );
-  });
+});
+
+
+const getAllVideosByOption = asyncHandler(async (req, res) => {
+    const {
+      page = 1,
+      limit = 10,
+      search = "",
+      sortBy,
+      sortType = "video",
+      order,
+      userId,
+    } = req.query;
+  
+    // filter video by given filters
+    let filters = { isPublished: true };
+    if (isValidObjectId(userId))
+      filters.owner = new mongoose.Types.ObjectId(userId);
+  
+    let pipeline = [
+      {
+        $match: {
+          ...filters,
+        },
+      },
+    ];
+  
+    const sort = {};
+  
+    // if query is given filter the videos
+    if (search) {
+      const queryWords = search
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, " ")
+        .split(" ");
+      const filteredWords = queryWords.filter(
+        (word) => !stopWords.includes(word)
+      );
+  
+      console.log("search: ", search);
+      console.log("filteredWords: ", filteredWords);
+  
+      pipeline.push({
+        $addFields: {
+          titleMatchWordCount: {
+            $size: {
+              $filter: {
+                input: filteredWords,
+                as: "word",
+                cond: {
+                  $in: ["$$word", { $split: [{ $toLower: "$title" }, " "] }],
+                },
+              },
+            },
+          },
+        },
+      });
+  
+      pipeline.push({
+        $addFields: {
+          descriptionMatchWordCount: {
+            $size: {
+              $filter: {
+                input: filteredWords,
+                as: "word",
+                cond: {
+                  $in: [
+                    "$$word",
+                    { $split: [{ $toLower: "$description" }, " "] },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      });
+  
+      sort.titleMatchWordCount = -1;
+    }
+  
+    // sort the documents
+    if (sortBy) {
+      sort[sortBy] = parseInt(order);
+    } else if (!search && !sortBy) {
+      sort["createdAt"] = -1;
+    }
+  
+    pipeline.push({
+      $sort: {
+        ...sort,
+      },
+    });
+  
+    // fetch owner detail
+    pipeline.push(
+      {
+        $lookup: {
+          from: "users",
+          localField: "owner",
+          foreignField: "_id",
+          as: "owner",
+          pipeline: [
+            {
+              $project: {
+                username: 1,
+                fullName: 1,
+                avatar: 1,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $unwind: "$owner",
+      }
+    );
+  
+    const videoAggregate = Video.aggregate(pipeline);
+  
+    const options = {
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+    };
+  
+    const allVideos = await Video.aggregatePaginate(videoAggregate, options);
+  
+    const { docs, ...pagingInfo } = allVideos;
+  
+    return res
+      .status(200)
+      .json(
+        new APIResponse(
+          200,
+          { videos: docs, pagingInfo },
+          "All Query Videos Sent Successfully"
+        )
+      );
+});
 
 
 export {
@@ -313,5 +451,7 @@ export {
     updateVideo,
     deleteVideo,
     togglePublishStatus,
-    updateView
+    updateView,
+    getAllVideosByOption,
+
 }
