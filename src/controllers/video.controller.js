@@ -435,7 +435,7 @@ const getAllVideosByOption = asyncHandler(async (req, res) => {
     return res
       .status(200)
       .json(
-        new APIResponse(
+        new ApiResponse(
           200,
           { videos: docs, pagingInfo },
           "All Query Videos Sent Successfully"
