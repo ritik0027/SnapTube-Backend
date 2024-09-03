@@ -1,7 +1,7 @@
 {
-  "name": "youtube-backend-project",
+  "name": "twido-backend",
   "version": "1.0.0",
-  "description": "a backend for youtube",
+  "description": "a backend for twido",
   "main": "index.js",
   "type": "module",
   "scripts": {

@@ -1,1 +1,1 @@
-export const DB_NAME="snaptube"
+export const DB_NAME="twido"
