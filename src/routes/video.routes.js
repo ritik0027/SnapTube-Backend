@@ -20,7 +20,7 @@ router.route("/publish-video").post(verifyJWT,
     publishAVideo
 )
 
-router.route("/").get(getAllVideosByOption)
+router.route("/all/option").get(getAllVideosByOption)
 router.route("/get-all-videos").get(getAllVideos)
 router.route("/:videoId").get(verifyJWT,getVideoById)
 router.route("/update-video/:videoId").post(verifyJWT,upload.single("thumbnail"), updateVideo)
