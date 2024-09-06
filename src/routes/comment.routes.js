@@ -11,8 +11,8 @@ const router = Router();
 
 router.use(verifyJWT); 
 
-router.route("/:videoId").get(getVideoComments);
-router.route("/:videoId").post(addComment);
+router.route("/get/:videoId").get(getVideoComments);
+router.route("/add/:videoId").post(addComment);
 router.route("/c/:commentId").delete(deleteComment);
 router.route("/c/:commentId").patch(updateComment);
 
