@@ -419,5 +419,6 @@ export {
     updateTweet,
     deleteTweet,
     getAllTweets,
-    getAllUserFeedTweets
+    getAllUserFeedTweets,
+    
 }
