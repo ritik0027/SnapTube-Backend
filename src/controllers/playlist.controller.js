@@ -137,6 +137,7 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
 
 });
 
+
 const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
     const {playlistId, videoId} = req.params
     if (!isValidObjectId(playlistId)) {
@@ -191,6 +192,7 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
 
 });
 
+
 const deletePlaylist = asyncHandler(async (req, res) => {
     const {playlistId} = req.params
     if (!isValidObjectId(playlistId)) {
@@ -210,6 +212,7 @@ const deletePlaylist = asyncHandler(async (req, res) => {
    )
 
 });
+
 
 const updatePlaylist = asyncHandler(async (req, res) => {
     const {playlistId} = req.params
@@ -255,7 +258,40 @@ const updatePlaylist = asyncHandler(async (req, res) => {
     catch (error) {
         throw new ApiError(400,`Error while updating playlist ${error}`)
     }
-})
+});
+
+
+const getVideoSavePlaylists = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+  
+    if (!isValidObjectId(videoId))
+      throw new ApiError(400, "Valid videoId required");
+  
+    const playlists = await Playlist.aggregate([
+      {
+        $match: {
+          owner: new mongoose.Types.ObjectId(req.user?._id),
+        },
+      },
+      {
+        $project: {
+          name: 1,
+          isVideoPresent: {
+            $cond: {
+              if: { $in: [new mongoose.Types.ObjectId(videoId), "$videos"] },
+              then: true,
+              else: false,
+            },
+          },
+        },
+      },
+    ]);
+  
+    return res
+      .status(200)
+      .json(new ApiResponse(200, playlists, "Playlists sent successfully"));
+});
+
 
 export {
     createPlaylist,
@@ -264,5 +300,6 @@ export {
     addVideoToPlaylist,
     removeVideoFromPlaylist,
     deletePlaylist,
-    updatePlaylist
+    updatePlaylist,
+    getVideoSavePlaylists
 }
