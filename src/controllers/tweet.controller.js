@@ -6,26 +6,30 @@ import {asyncHandler} from "../utils/asyncHandler.js"
 import {Subscription} from "../models/subscription.model.js"
 
 const createTweet = asyncHandler(async (req, res) => {
-    const{ content }=req.body
-    const user=await User.findById(req.user?._id)
+  const { content } = req.body;
 
-    if(!content){
-        throw new ApiError(400,"Content is required")
-    }
-    if(!user){
-        throw new ApiError(400,"Cannot fetch user")
-    }
+  if (!content) throw new ApiError(400, "Tweet content required");
 
-    const tweet=await Tweet.create({
-        owner: user._id,
-        content:content
-    })
+  const tweetRes = await Tweet.create({ content , owner: req.user?._id });
 
-    return(
-        res
-        .status(200)
-        .json(new ApiResponse(200,tweet,"Tweet created successfully"))
-    )
+  if (!tweetRes) throw new ApiError(500, "Error occured while creating tweet");
+
+  let newTweet = {
+    ...tweetRes._doc,
+    owner: {
+      fullName: req.user?.fullName,
+      username: req.user?.username,
+      avatar: req.user?.avatar,
+    },
+    totalDisLikes: 0,
+    totalLikes: 0,
+    isLiked: false,
+    isDisLiked: false,
+  };
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, newTweet, "tweet created successfully"));
 });
 
 
