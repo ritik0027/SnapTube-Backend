@@ -305,9 +305,7 @@ const deleteComment = asyncHandler(async (req, res) => {
         );
     }
 
-    const user = await User.findOne({
-        refreshToken: req.cookies.refreshToken,
-    })
+    const user = await User.findOne(req.user?._id)
     if (!user) {
         throw new ApiError(404, "User not found")
     }
