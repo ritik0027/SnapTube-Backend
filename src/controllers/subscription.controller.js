@@ -7,68 +7,42 @@ import {asyncHandler} from "../utils/asyncHandler.js"
 
 
 const toggleSubscription = asyncHandler(async (req, res) => {
-    const {channelId} = req.params
-    if(!isValidObjectId(channelId)){
-        throw new ApiError(400,"Cannot find the channel")
-    }
-
-    const channel=await User.findById(channelId) 
-    if(!channel){
-        throw new ApiError(404,"Channel does not exist")
-    }
-
-    const user = await User.findOne({
-        refreshToken: req.cookies.refreshToken,
-    })
-    
-    if (!user) {
-        throw new ApiError(404, "Subscriber not found")
-    }
-
-
-    const userSub=await Subscription.findOne({
-        subscriber: user._id,
-        channel: channelId,
+    const { channelId } = req.params;
+  
+    if (!isValidObjectId(channelId)) throw new ApiError(400, "Invalid ChannelId");
+  
+    let isSubscribed;
+  
+    const findRes = await Subscription.findOne({
+      subscriber: req.user?._id,
+      channel: channelId,
     });
-
-    //if user is subscribed- unsubscribe 
-    if(userSub){
-        const unsubscribe= await Subscription.findOneAndDelete(
-            {
-                subscriber: user._id,
-                channel: channel._id
-            }
-        )
-
-        if (!unsubscribe) {
-            throw new ApiError(500, "Something went wrong while unsubscribing ");
-        }
-
-        return(
-            res
-            .status(200)
-            .json(new ApiResponse(200,unsubscribe,"User unsubscribed"))
-        )
+  
+    if (findRes) {
+      const res = await Subscription.deleteOne({
+        subscriber: req.user?._id,
+        channel: channelId,
+      });
+      isSubscribed = false;
+    } else {
+      const newSub = await Subscription.create({
+        subscriber: req.user?._id,
+        channel: channelId,
+      });
+      if (!newSub) throw new ApiError(500, "Failed to toggle Subscription");
+      isSubscribed = true;
     }
-
-    //else subscribe the channel
-    if(!userSub){
-        const subscribe=await Subscription.create(
-            {
-                subscriber: user._id,
-                channel: channel._id
-            }
+  
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          { isSubscribed },
+          `${isSubscribed ? "Subscribed successfully" : "Un-Subscribed successfully"}`
         )
-        if (!subscribe) {
-            throw new ApiError(500,"Error while subscribing the channel")
-        }
-        return(
-            res
-            .status(200)
-            .json(new ApiResponse(200,subscribe,"User subscribed"))
-        )
-    }
-});
+      );
+});  
 
 
 const getUserChannelSubscribers = asyncHandler(async (req, res) => {

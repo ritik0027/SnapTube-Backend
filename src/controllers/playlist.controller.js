@@ -8,43 +8,21 @@ import {Video} from "../models/video.model.js"
 
 
 const createPlaylist = asyncHandler(async (req, res) => {
-    const {name,description}=req.body
-    if(!name){
-        throw new ApiError(400,"Name for playlist is required")
-    }
-    if(!description){
-        throw new ApiError(400,"description for playlist is required")
-    }
-
-    const user = await User.findOne({
-        refreshToken: req.cookies.refreshToken,
-    })
-
-    if (!user) {
-        throw new ApiError(404, "User not found")
-    }
-
-    try {
-        const playlist=await Playlist.create({
-            name:name,
-            description:description,
-            owner:user._id
-        })
-    
-        if(!playlist){
-            throw new ApiError(400,"Error while creating playlist")
-        }
-    
-        return(
-            res
-            .status(200)
-            .json(new ApiResponse(200,playlist,"Playlist created successfully"))
-        )
-    } 
-    catch (error) {
-        throw new ApiError(400,`Error while creating playlist ${error}`)
-    }
-
+    const { name, description } = req.body;
+  
+    if (!name) throw new ApiError(400, "Name required");
+  
+    const playlist = await Playlist.create({
+      name,
+      description: description || "",
+      owner: req.user?._id,
+    });
+  
+    if (!playlist) throw new APIError(500, "Error while creating Playlist");
+  
+    return res
+      .status(200)
+      .json(new ApiResponse(200, playlist, "Playlist Created Successfully"));
 });
 
 
