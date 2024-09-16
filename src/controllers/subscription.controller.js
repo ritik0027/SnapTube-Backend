@@ -72,34 +72,87 @@ const toggleSubscription = asyncHandler(async (req, res) => {
 
 
 const getUserChannelSubscribers = asyncHandler(async (req, res) => {
-    const {channelId} = req.params
-    if(!isValidObjectId(channelId)){
-        throw new ApiError(400,"Cannot fetch channel id from params")
-    }
-
-    const channel=await User.findById(channelId)
-    if(!channel){
-        throw new ApiError(404,"Channel does not exist")
-    }
-
-
-    const subscribers=await Subscription.find(
-        {
-            channel:channel?._id
-        }
-    ).populate('subscriber')
-
-    
-    const subscriberCount=await Subscription.countDocuments({
-        channel:channelId
-    })
-
-
-    return(
-        res
-        .status(200)
-        .json(new ApiResponse(200,{subscriberCount,subscribers},"Subscribers retrieved successfully"))
-    )
+    const { channelId = req.user?._id } = req.params;
+  
+    if (!isValidObjectId(channelId)) throw new ApiError(400, "Invalid ChannelId");
+  
+    const subscriberList = await Subscription.aggregate([
+      {
+        $match: {
+          channel: new mongoose.Types.ObjectId(channelId),
+        },
+      },
+      {
+        $lookup: {
+          from: "subscriptions",
+          localField: "channel",
+          foreignField: "subscriber",
+          as: "subscribedChannels",
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "subscriber",
+          foreignField: "_id",
+          as: "subscriber",
+          pipeline: [
+            {
+              $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "channel",
+                as: "subscribersSubscribers",
+              },
+            },
+            {
+              $project: {
+                username: 1,
+                avatar: 1,
+                fullName: 1,
+                subscribersCount: {
+                  $size: "$subscribersSubscribers",
+                },
+              },
+            },
+          ],
+        },
+      },
+      {
+        $unwind: {
+          path: "$subscriber",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $addFields: {
+          "subscriber.isSubscribed": {
+            $cond: {
+              if: {
+                $in: ["$subscriber._id", "$subscribedChannels.channel"],
+              },
+              then: true,
+              else: false,
+            },
+          },
+        },
+      },
+      {
+        $group: {
+          _id: "channel",
+          subscriber: {
+            $push: "$subscriber",
+          },
+        },
+      },
+    ]);
+  
+    const subscribers =
+      subscriberList?.length > 0 ? subscriberList[0].subscriber : [];
+  
+    return res
+      .status(200)
+      .json(new ApiResponse(200, subscribers, "Subscriber Sent Successfully"));
 });
 
 

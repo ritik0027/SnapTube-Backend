@@ -60,81 +60,54 @@ const publishAVideo = asyncHandler(async (req, res) => {
 
 
 const getAllVideos = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10, query, sortBy, sortType} = req.query;
+  const { userId } = req.query;
 
-    const user = await User.find({
-        refreshToken: req.cookies.refreshToken,
-    });
+  let filters = { isPublished: true };
+  if (isValidObjectId(userId))
+    filters.owner = new mongoose.Types.ObjectId(userId);
 
-    const pageNumber = parseInt(page);
-    const limitOfVideos = parseInt(limit);
+  let pipeline = [
+    {
+      $match: {
+        ...filters,
+      },
+    },
+  ];
 
-    if (!user) {
-        throw new ApiError(400, "User is required.");
+  pipeline.push({
+    $sort: {
+      createdAt: -1,
+    },
+  });
+
+  pipeline.push(
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "owner",
+        pipeline: [
+          {
+            $project: {
+              username: 1,
+              fullName: 1,
+              avatar: 1,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $unwind: "$owner",
     }
+  );
 
-    const skip = (pageNumber - 1) * limitOfVideos;
-    const pageSize = limitOfVideos;
+  const allVideos = await Video.aggregate(Array.from(pipeline));
 
-    const videos = await Video.aggregatePaginate(
-        Video.aggregate([
-            { 
-                $match: {
-                    $or: [
-                        { title: { $regex: "query", $options: 'i' } },
-                        { description: { $regex: "query", $options: 'i' } }
-                    ],
-                    isPublished: true,
-                    owner: user._id
-                }
-            },
-            {
-                $lookup: {
-                    from: "likes",
-                    localField: "_id",
-                    foreignField: "video",
-                    as: "likes",
-                }
-            },
-            {
-                $addFields: {
-                    likes: { $size: "$likes" }
-                }
-            },
-            {
-                $project: {
-                    "_id": 1,
-                    "videoFile": 1,
-                    "thumbnail": 1,
-                    "title": 1,
-                    "description": 1,
-                    "duration": 1,
-                    "views": 1,
-                    "isPublished": 1,
-                    "owner": 1,
-                    "createdAt": 1,
-                    "updatedAt": 1,
-                    "likes": 1
-                }
-            },
-            { $sort: { [sortBy]: sortType === 'asc' ? 1 : -1 } },
-            { $skip: skip },
-            { $limit: pageSize }
-        ])
-    );
-
-    if (videos.length === 0) {
-        return (
-            res
-            .status(200)
-            .json(new ApiResponse(200, "No videos available."))
-        )
-    } 
-        res
-        .status(200)
-        .json(new ApiResponse(200, videos, "Videos fetched successfully"));
-    
-   
+  return res
+    .status(200)
+    .json(new ApiResponse(200, allVideos, "all videos sent"));
 });
 
 
