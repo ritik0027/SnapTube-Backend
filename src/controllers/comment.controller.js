@@ -213,44 +213,31 @@ const getVideoComments = asyncHandler(async (req, res) => {
 
 
 const addComment = asyncHandler(async (req, res) => {
-    const { videoId } = req.params
-    if (!videoId) {
-        throw new ApiError(400, "Invalid videoId")
-    }
-
-
-    const { content } = req.body
-    if (!content) {
-        throw new ApiError(400, "Content is required")
-    }
-
-    const user = await User.findOne({
-        refreshToken: req.cookies.refreshToken,
-    })
-    if (!user) {
-        throw new ApiError(404, "User not found")
-    }
-    const video = await Video.findById(videoId)
-
-    if (!video) {
-        throw new ApiError(400, "cannot find the video")
-    }
-
+    const { videoId } = req.params;
+    const { content } = req.body;
+  
+    if (!isValidObjectId(videoId)) throw new APIError(400, "Invalid VideoId");
+    if (!content) throw new ApiError(400, "No Comment Found");
+  
     const comment = await Comment.create({
-        content: content,
-        owner: user._id,
-        video: video._id
-    })
-
-    if (!comment) {
-        throw new ApiError(500, "Error in creating the comment")
-    }
-
-    return (
-        res
-            .status(200)
-            .json(new ApiResponse(200, comment, "Commented successfully"))
-    )
+      content,
+      video: videoId,
+      owner: req.user?._id,
+    });
+    if (!comment) throw new APIError(500, "Error while adding comment");
+  
+    const { username, avatar, fullName, _id } = req.user;
+  
+    const commentData = {
+      ...comment._doc,
+      owner: { username, avatar, fullName, _id },
+      likesCount: 0,
+      isOwner: true,
+    };
+  
+    return res
+      .status(200)
+      .json(new ApiResponse(200, commentData, "Comment added successfully"));
 });
 
 
@@ -262,9 +249,7 @@ const updateComment = asyncHandler(async (req, res) => {
 
     const comment = await Comment.findById(commentId)
 
-    const user = await User.findOne({
-        refreshToken: req.cookies.refreshToken,
-    })
+    const user = await User.findOne(req.user?._id)
 
     if (!user) {
         throw new ApiError(404, "User not found")
