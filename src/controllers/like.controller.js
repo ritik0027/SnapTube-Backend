@@ -267,27 +267,64 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
 
 
 const getLikedVideos = asyncHandler(async (req, res) => {
-    const user = await User.findOne({
-        refreshToken: req.cookies.refreshToken,
-    })
+  const likedVideos = await Like.aggregate([
+    {
+      $match: {
+        video: { $ne: null },
+        likedBy: new mongoose.Types.ObjectId(req.user?._id),
+      },
+    },
+    {
+      $lookup: {
+        from: "videos",
+        localField: "video",
+        foreignField: "_id",
+        as: "video",
+        pipeline: [
+          {
+            $lookup: {
+              from: "users",
+              localField: "owner",
+              foreignField: "_id",
+              as: "owner",
+              pipeline: [
+                {
+                  $project: {
+                    username: 1,
+                    fullName: 1,
+                    avatar: 1,
+                  },
+                },
+              ],
+            },
+          },
+          {
+            $unwind: "$owner",
+          },
+        ],
+      },
+    },
+    {
+      $unwind: "$video",
+    },
+    {
+      $match: {
+        "video.isPublished": true,
+      },
+    },
+    {
+      $group: {
+        _id: "likedBy",
+        videos: { $push: "$video" },
+      },
+    },
+  ]);
 
-    if (!user) {
-        throw new ApiError(404, "User not found")
-    }
+  const videos = likedVideos[0]?.videos || [];
 
-    const likes = await Like.find({ likedBy: user._id, video: { $exists: true } }).populate('video');
-
-    if (!likes) {
-        return res.status(200).json(new ApiResponse(200, [], "No liked videos found"));
-    }
-
-    const likedVideos = likes.map(like => like.video);
-
-    return (
-        res
-        .status(200)
-        .json(new ApiResponse(200, likedVideos, "Liked videos fetched successfully"))
-        );
+  return res
+    .status(200)
+    .json(new ApiResponse(200, videos, "videos sent successfully"));
 });
 
 export {
