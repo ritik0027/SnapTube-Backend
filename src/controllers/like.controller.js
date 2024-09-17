@@ -156,9 +156,7 @@ const toggleLike = asyncHandler(async (req, res) => {
 const toggleVideoLike = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
 
-    const user = await User.findOne({
-        refreshToken: req.cookies.refreshToken,
-    })
+    const user = await User.findOne(req.user?._id)
 
     if (!user) {
         throw new ApiError(404, "User not found")

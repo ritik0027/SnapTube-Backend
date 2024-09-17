@@ -213,7 +213,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
   
     // Caution
     if (!oldPassword || !newPassword) {
-      throw new APIError(400, "All Fields Required");
+      throw new ApiError(400, "All Fields Required");
     }
   
     const user = await User.findById(req.user?._id);
