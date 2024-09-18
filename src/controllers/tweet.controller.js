@@ -10,7 +10,7 @@ const createTweet = asyncHandler(async (req, res) => {
 
   if (!content) throw new ApiError(400, "Tweet content required");
 
-  const tweetRes = await Tweet.create({ content , owner: req.user?._id });
+  const tweetRes = await Tweet.create({ content: content, owner: req.user?._id });
 
   if (!tweetRes) throw new ApiError(500, "Error occured while creating tweet");
 
@@ -393,9 +393,7 @@ const deleteTweet = asyncHandler(async (req, res) => {
     }
     const tweet= await Tweet.findById(tweetId)
 
-    const user = await User.findOne({
-        refreshToken: req.cookies.refreshToken,
-    })
+    const user = await User.findOne(req.user?._id)
 
     if (!user) {
         throw new ApiError(404, "User not found")

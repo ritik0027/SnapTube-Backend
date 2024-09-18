@@ -191,9 +191,7 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
 const toggleCommentLike = asyncHandler(async (req, res) => {
     const { commentId } = req.params;
 
-    const user = await User.findOne({
-        refreshToken: req.cookies.refreshToken,
-    })
+    const user = await User.findOne(req.user?._id)
     
     if (!user) {
         throw new ApiError(404, "User not found")
@@ -229,9 +227,7 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
 
 const toggleTweetLike = asyncHandler(async (req, res) => {
     const {tweetId} = req.params
-    const user = await User.findOne({
-        refreshToken: req.cookies.refreshToken,
-    })
+    const user = await User.findOne(req.user?._id)
 
     if (!user) {
         throw new ApiError(404, "User not found")
