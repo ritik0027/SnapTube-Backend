@@ -21,7 +21,7 @@ router.route("/publish-video").post(verifyJWT,
 )
 
 router.route("/all/option").get(getAllVideosByOption)
-router.route("/get-all-videos").get(getAllVideos)
+router.route("/:userId").get(getAllVideos)
 router.route("/:videoId").get(getVideoById)
 router.route("/update-video/:videoId").post(verifyJWT,upload.single("thumbnail"), updateVideo)
 router.route("/delete-video/:videoId").delete(verifyJWT,deleteVideo)
