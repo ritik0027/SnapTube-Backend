@@ -6,13 +6,20 @@ import {asyncHandler} from "../utils/asyncHandler.js"
 import {Subscription} from "../models/subscription.model.js"
 
 const createTweet = asyncHandler(async (req, res) => {
+  // Log the entire request body
+  console.log("Received data:", req.body);
+
   const { content } = req.body;
 
-  if (!content) throw new ApiError(400, "Tweet content required");
+  // If content is missing, log an error
+  if (!content) {
+    console.error("Tweet content is missing");
+    throw new ApiError(400, "Tweet content required");
+  }
 
   const tweetRes = await Tweet.create({ content: content, owner: req.user?._id });
 
-  if (!tweetRes) throw new ApiError(500, "Error occured while creating tweet");
+  if (!tweetRes) throw new ApiError(500, "Error occurred while creating tweet");
 
   let newTweet = {
     ...tweetRes._doc,
