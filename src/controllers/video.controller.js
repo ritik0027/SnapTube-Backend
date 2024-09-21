@@ -126,7 +126,6 @@ const getVideoById = asyncHandler(async (req, res) => {
         isPublished: true,
       },
     },
-    // get all likes array
     {
       $lookup: {
         from: "likes",
@@ -148,7 +147,6 @@ const getVideoById = asyncHandler(async (req, res) => {
         ],
       },
     },
-    // get all dislikes array
     {
       $lookup: {
         from: "likes",
@@ -170,7 +168,6 @@ const getVideoById = asyncHandler(async (req, res) => {
         ],
       },
     },
-    // adjust shapes of likes and dislikes
     {
       $addFields: {
         likes: {
@@ -193,7 +190,6 @@ const getVideoById = asyncHandler(async (req, res) => {
         },
       },
     },
-    // fetch owner details
     {
       $lookup: {
         from: "users",
@@ -214,24 +210,24 @@ const getVideoById = asyncHandler(async (req, res) => {
     {
       $unwind: "$owner",
     },
-    // added like fields
     {
       $project: {
+        _id: 1,
         videoFile: 1,
         title: 1,
         description: 1,
         duration: 1,
         thumbnail: 1,
         views: 1,
-        owner: 1,
+        owner: {
+          username: 1,
+          fullName: 1,
+          avatar: 1,
+        },
         createdAt: 1,
         updatedAt: 1,
-        totalLikes: {
-          $size: "$likes",
-        },
-        totalDisLikes: {
-          $size: "$dislikes",
-        },
+        totalLikes: { $size: "$likes" },
+        totalDisLikes: { $size: "$dislikes" },
         isLiked: {
           $cond: {
             if: {
@@ -254,7 +250,7 @@ const getVideoById = asyncHandler(async (req, res) => {
     },
   ]);
 
-  if (!video.length > 0) throw new APIError(400, "No video found");
+  if (!video.length) throw new ApiError(404, "No video found");
 
   return res
     .status(200)
