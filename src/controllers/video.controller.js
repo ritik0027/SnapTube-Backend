@@ -258,6 +258,119 @@ const getVideoById = asyncHandler(async (req, res) => {
 });
 
 
+const getUserChannelVideos = asyncHandler(async (req, res) => {
+  const { username } = req.params; // Fetch username from the request params
+
+  // Find the user by username
+  const user = await User.findOne({ username });
+  if (!user) {
+    return res.status(404).json(new ApiResponse(404, null, "User not found"));
+  }
+
+  const allVideos = await Video.aggregate([
+    {
+      $match: {
+        owner: new mongoose.Types.ObjectId(user._id), // Match videos by the user's _id
+      },
+    },
+    {
+      $sort: {
+        createdAt: -1,
+      },
+    },
+    // lookup for likes
+    {
+      $lookup: {
+        from: "likes",
+        localField: "_id",
+        foreignField: "video",
+        as: "likes",
+        pipeline: [
+          {
+            $match: {
+              liked: true,
+            },
+          },
+        ],
+      },
+    },
+    // lookup for dislikes
+    {
+      $lookup: {
+        from: "likes",
+        localField: "_id",
+        foreignField: "video",
+        as: "dislikes",
+        pipeline: [
+          {
+            $match: {
+              liked: false,
+            },
+          },
+        ],
+      },
+    },
+    // lookup for comments
+    {
+      $lookup: {
+        from: "comments",
+        localField: "_id",
+        foreignField: "video",
+        as: "comments",
+      },
+    },
+    // lookup for owner information
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "owner",
+        pipeline: [
+          {
+            $project: {
+              username: 1,
+              fullName: 1,
+              avatar: 1,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $project: {
+        title: 1,
+        thumbnail: 1,
+        isPublished: 1,
+        duration: 1,
+        description: 1,
+        views: 1,
+        owner: {
+          username: 1,
+          fullName: 1,
+          avatar: 1,
+        },
+        createdAt: 1,
+        updatedAt: 1,
+        likesCount: {
+          $size: "$likes",
+        },
+        dislikesCount: {
+          $size: "$dislikes",
+        },
+        commentsCount: {
+          $size: "$comments",
+        },
+      },
+    },
+  ]);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, allVideos, "All videos fetched successfully"));
+});
+
+
 const updateVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
     if (!videoId) {
@@ -549,5 +662,6 @@ export {
     togglePublishStatus,
     updateView,
     getAllVideosByOption,
+    getUserChannelVideos
 
 }
