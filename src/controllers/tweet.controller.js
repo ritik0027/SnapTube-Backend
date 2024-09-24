@@ -4,6 +4,7 @@ import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
 import {Subscription} from "../models/subscription.model.js"
+import mongoose, {isValidObjectId} from "mongoose"
 
 const createTweet = asyncHandler(async (req, res) => {
   // Log the entire request body
@@ -41,19 +42,149 @@ const createTweet = asyncHandler(async (req, res) => {
 
 
 const getUserTweets = asyncHandler(async (req, res) => {
-    const { userId } = req.params;
-    if(!userId){
-        throw new ApiError(400,"user Id cant be found from params")
-    }
+  const { userId } = req.params;
 
-    const userTweets = await Tweet.find({ owner: userId });
+  if (!isValidObjectId(userId))
+    throw new ApiError(400, "Invalid userId: " + userId);
 
-    return(
-        res
-        .status(200)
-        .json(new ApiResponse(200,userTweets,"Tweets fetched successfully"))
-    )
+  const allTweets = await Tweet.aggregate([
+    {
+      $match: {
+        owner: new mongoose.Types.ObjectId(userId),
+      },
+    },
+    // sort by latest
+    {
+      $sort: {
+        createdAt: -1,
+      },
+    },
+    // fetch likes of tweet
+    {
+      $lookup: {
+        from: "likes",
+        localField: "_id",
+        foreignField: "tweet",
+        as: "likes",
+        pipeline: [
+          {
+            $match: {
+              liked: true,
+            },
+          },
+          {
+            $group: {
+              _id: "liked",
+              owners: { $push: "$likedBy" },
+            },
+          },
+        ],
+      },
+    },
+    {
+      $lookup: {
+        from: "likes",
+        localField: "_id",
+        foreignField: "tweet",
+        as: "dislikes",
+        pipeline: [
+          {
+            $match: {
+              liked: false,
+            },
+          },
+          {
+            $group: {
+              _id: "liked",
+              owners: { $push: "$likedBy" },
+            },
+          },
+        ],
+      },
+    },
+    // Reshape Likes and dislikes
+    {
+      $addFields: {
+        likes: {
+          $cond: {
+            if: {
+              $gt: [{ $size: "$likes" }, 0],
+            },
+            then: { $first: "$likes.owners" },
+            else: [],
+          },
+        },
+        dislikes: {
+          $cond: {
+            if: {
+              $gt: [{ $size: "$dislikes" }, 0],
+            },
+            then: { $first: "$dislikes.owners" },
+            else: [],
+          },
+        },
+      },
+    },
+    // get owner details
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "owner",
+        pipeline: [
+          {
+            $project: {
+              username: 1,
+              avatar: 1,
+              fullName: 1,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $unwind: "$owner",
+    },
+    {
+      $project: {
+        content: 1,
+        createdAt: 1,
+        updatedAt: 1,
+        owner: 1,
+        totalLikes: {
+          $size: "$likes",
+        },
+        totalDisLikes: {
+          $size: "$dislikes",
+        },
+        isLiked: {
+          $cond: {
+            if: {
+              $in: [req.user?._id, "$likes"],
+            },
+            then: true,
+            else: false,
+          },
+        },
+        isDisLiked: {
+          $cond: {
+            if: {
+              $in: [req.user?._id, "$dislikes"],
+            },
+            then: true,
+            else: false,
+          },
+        },
+      },
+    },
+  ]);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, allTweets, "all tweets send successfully"));
 });
+
 
 
 const getAllTweets = asyncHandler(async (req, res) => {
