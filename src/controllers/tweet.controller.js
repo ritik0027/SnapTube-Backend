@@ -483,44 +483,25 @@ const getAllUserFeedTweets = asyncHandler(async (req, res) => {
 
 
 const updateTweet = asyncHandler(async (req, res) => {
-    const { tweetId } = req.params
-    if(!tweetId){
-        throw new ApiError(400,"tweet Id cant be fetched from params")
+  const { tweetId } = req.params;
+  const { tweet } = req.body;
+  if (!isValidObjectId(tweetId)) throw new APIError(400, "Invalid tweetId");
+  if (!tweet) throw new ApiError(400, "tweet content required");
+
+  const updatedTweet = await Tweet.findByIdAndUpdate(
+    tweetId,
+    {
+      $set: {
+        content: tweet,
+      },
+    },
+    {
+      new: true,
     }
-
-    const tweet = await Tweet.findById(tweetId)
-    if(!tweet){
-        throw new ApiError(400,"Cant find Tweet")
-    }
-
-    const user = await User.findOne({
-        refreshToken: req.cookies.refreshToken,
-    })
-
-    if (!user) {
-        throw new ApiError(404, "User not found")
-    }
-
-    if (tweet?.owner.equals(user._id.toString())) {
-
-        const {content}=req.body
-
-        if(!content){
-            throw new ApiError(400,"Please provide content to update")
-        }
-
-        tweet.content=content
-        await tweet.save({validateBeforeSave:false})
-
-        return(
-            res
-            .status(200)
-            .json(new ApiResponse(200,tweet,"tweet updated successfully"))
-        )
-
-    }else{
-        throw new ApiError(400,"Only the owner can update the tweet")
-    }
+  );
+  return res
+    .status(200)
+    .json(new ApiResponse(200, updatedTweet, "tweet updated successfully"));
 });
 
 
