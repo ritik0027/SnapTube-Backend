@@ -1,5 +1,5 @@
 import {Tweet} from "../models/tweet.model.js"
-import {User} from "../models/user.model.js"
+import {Like} from "../models/like.model.js"
 import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
@@ -184,7 +184,6 @@ const getUserTweets = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, allTweets, "all tweets send successfully"));
 });
-
 
 
 const getAllTweets = asyncHandler(async (req, res) => {
@@ -506,32 +505,21 @@ const updateTweet = asyncHandler(async (req, res) => {
 
 
 const deleteTweet = asyncHandler(async (req, res) => {
-    const {tweetId}=req.params
-    if(!tweetId){
-        throw new ApiError(400,"Tweet id cant be fetched for params")
-    }
-    const tweet= await Tweet.findById(tweetId)
+  const { tweetId } = req.params;
 
-    const user = await User.findOne(req.user?._id)
+  if (!isValidObjectId(tweetId)) throw new ApiError(400, "Invalid tweetId");
 
-    if (!user) {
-        throw new ApiError(404, "User not found")
-    }
+  const findRes = await Tweet.findByIdAndDelete(tweetId);
 
+  if (!findRes) throw new ApiError(500, "tweet not found");
 
-    if (tweet?.owner.equals(user._id.toString())) {
-        await Tweet.findByIdAndDelete(tweetId)
-        return(
-            res
-            .status(200)
-            .json(new ApiResponse(200,{},"Tweet deleted successfully"))
-        )
+  const deleteLikes = await Like.deleteMany({
+    tweet: new mongoose.Types.ObjectId(tweetId),
+  });
 
-    }
-
-    else{
-        throw new ApiError(401,"Only user can delete the tweet")
-    }
+  return res
+    .status(200)
+    .json(new ApiResponse(200, findRes, "tweet deleted successfully"));
 });
 
 export {
@@ -540,6 +528,5 @@ export {
     updateTweet,
     deleteTweet,
     getAllTweets,
-    getAllUserFeedTweets,
-    
+    getAllUserFeedTweets
 }
