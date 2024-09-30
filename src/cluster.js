@@ -1,6 +1,6 @@
 import cluster from 'cluster';
 import os from 'os';
-import app from './app.js';
+import app from '.app';
 import dotenv from 'dotenv';
 import connectDB from './db/index.js';
 
