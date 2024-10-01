@@ -29,6 +29,7 @@ const createTweet = asyncHandler(async (req, res) => {
       username: req.user?.username,
       avatar: req.user?.avatar,
     },
+    isOwner:true,
     totalDisLikes: 0,
     totalLikes: 0,
     isLiked: false,
