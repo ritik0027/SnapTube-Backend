@@ -148,7 +148,9 @@ const logoutUser = asyncHandler(async(req, res) => {
 
     const options = {
         httpOnly: true,
-        secure: true
+        secure: true,
+        sameSite: 'None'
+
     }
 
     return res
@@ -185,7 +187,8 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     
         const options = {
             httpOnly: true,
-            secure: true
+            secure: true,
+            sameSite: 'None'
         }
     
         const {accessToken, newRefreshToken} = await generateAccessAndRefereshTokens(user._id)
@@ -486,11 +489,11 @@ const clearWatchHistory = asyncHandler(async (req, res) => {
       }
     );
 
-    if (!isCleared) throw new APIError(500, "Failed to clear history");
+    if (!isCleared) throw new ApiError(500, "Failed to clear history");
 
     return res
     .status(200)
-    .json(new APIResponse(200, [], "History Cleared Successfully"));
+    .json(new ApiResponse(200, [], "History Cleared Successfully"));
 
 })
 
